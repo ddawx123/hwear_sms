@@ -11,53 +11,46 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.wearable.view.WatchViewStub;
-import android.telephony.SmsMessage;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.dscitech.sms.wearable.Services.SmsService;
 
 public class MainActivity extends Activity {
 
     private TextView mTextView;
     private BroadcastReceiver smsReceiver;
+    private final String[] require_permission_list = {
+        Manifest.permission.FOREGROUND_SERVICE,
+        Manifest.permission.RECEIVE_SMS
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
         final TextView smsTextView = findViewById(R.id.smsTextView);
-        //mTextView = (TextView) stub.findViewById(R.id.smsTextView);
-        /*stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
-            @Override
-            public void onLayoutInflated(WatchViewStub stub) {
-                mTextView = (TextView) stub.findViewById(R.id.smsTextView);
+        boolean shouldRequestPerm = false;
+        for (String permission : require_permission_list) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                shouldRequestPerm = true;
+                break;
             }
-        });*/
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] {
-                Manifest.permission.RECEIVE_SMS
-            }, 1);
         }
-        smsReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                Bundle bundle = intent.getExtras();
-                if (bundle != null) {
-                    Object[] pdus = (Object[]) bundle.get("pdus");
-                    if (pdus != null) {
-                        for (Object pdu : pdus) {
-                            SmsMessage smsMessage = SmsMessage.createFromPdu((byte[]) pdu);
-                            String sender = smsMessage.getOriginatingAddress();
-                            String messageBody = smsMessage.getMessageBody();
-                            System.out.println(String.format("Sender: %s\nMessage: %s", sender, messageBody));
-                            smsTextView.setText(String.format("Sender: %s\nMessage: %s", sender, messageBody));
-                        }
-                    }
+        if (shouldRequestPerm) {
+            ActivityCompat.requestPermissions(this, require_permission_list, 1);
+        } else {
+            startService(new Intent(this, SmsService.class));
+            smsReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String smsMessage = intent.getStringExtra("sms_message");
+                    smsTextView.setText(smsMessage);
                 }
-            }
-        };
-        IntentFilter intentFilter = new IntentFilter("android.provider.Telephony.SMS_RECEIVED");
-        registerReceiver(smsReceiver, intentFilter);
+            };
+            IntentFilter intentFilter = new IntentFilter("my_sms_action");
+            registerReceiver(smsReceiver, intentFilter);
+        }
     }
 
     @Override
@@ -69,11 +62,20 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        boolean preventStartService = false;
         if (requestCode == 1) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted.
+            if (grantResults.length == 0) {
+                Toast.makeText(this, "未授权", Toast.LENGTH_LONG).show();
             } else {
-                // Permission denied.
+                for (int i = 0; i < grantResults.length; i++) {
+                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                        preventStartService = true;
+                        Toast.makeText(this, "未授权", Toast.LENGTH_LONG).show();
+                        break;
+                    }
+                }
+                // 权限核查全部通过的 开始启动服务
+                if (!preventStartService) startService(new Intent(this, SmsService.class));
             }
         }
     }

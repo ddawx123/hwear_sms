@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SMS</string>
+    <string name="app_name">收短信助手</string>
     <string name="hello_round">Hello Round World!</string>
     <string name="hello_square">Hello Square World!</string>
 </resources>
