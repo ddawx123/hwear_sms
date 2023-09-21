@@ -1,5 +1,4 @@
 <resources>
     <string name="app_name">收短信助手</string>
-    <string name="hello_round">Hello Round World!</string>
-    <string name="hello_square">Hello Square World!</string>
+    <string name="hello_round">欢迎使用\n手表短信助手\n当前无消息\n后台服务已启动\n请留意通知中心</string>
 </resources>

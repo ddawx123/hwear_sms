@@ -16,7 +16,7 @@
             android:layout_width="158dp"
             android:layout_height="128dp"
             android:layout_centerVertical="true"
-            android:text="无信息"
+            android:text="@+string/hello_round"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintTop_toTopOf="parent"
