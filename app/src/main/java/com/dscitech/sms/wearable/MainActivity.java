@@ -2,12 +2,16 @@ package com.dscitech.sms.wearable;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -18,7 +22,6 @@ import com.dscitech.sms.wearable.Services.SmsService;
 
 public class MainActivity extends Activity {
 
-    private TextView mTextView;
     private BroadcastReceiver smsReceiver;
     private final String[] require_permission_list = {
         Manifest.permission.FOREGROUND_SERVICE,
@@ -29,6 +32,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ActivityManager activityManager = (ActivityManager)getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
+        activityManager.getAppTasks().get(0).setExcludeFromRecents(true);
         final TextView smsTextView = findViewById(R.id.smsTextView);
         boolean shouldRequestPerm = false;
         for (String permission : require_permission_list) {
@@ -51,6 +56,7 @@ public class MainActivity extends Activity {
             IntentFilter intentFilter = new IntentFilter("my_sms_action");
             registerReceiver(smsReceiver, intentFilter);
         }
+        checkDrawOverlaysPermission();
     }
 
     @Override
@@ -76,6 +82,15 @@ public class MainActivity extends Activity {
                 }
                 // 权限核查全部通过的 开始启动服务
                 if (!preventStartService) startService(new Intent(this, SmsService.class));
+            }
+        }
+    }
+
+    private void checkDrawOverlaysPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                Toast.makeText(this, "当前无权限显示浮动窗口，请授权", Toast.LENGTH_SHORT).show();
+                startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())), 1);
             }
         }
     }
